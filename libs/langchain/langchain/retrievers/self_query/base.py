@@ -8,6 +8,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field, root_validator
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.runnables import Runnable
 from langchain_core.vectorstores import VectorStore
+from langchain_core.exceptions import OutputParserException
 
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForRetrieverRun,
@@ -159,9 +160,16 @@ class SelfQueryRetriever(BaseRetriever, BaseModel):
         Returns:
             List of relevant documents
         """
-        structured_query = self.query_constructor.invoke(
-            {"query": query}, config={"callbacks": run_manager.get_child()}
-        )
+        # structured_query = self.query_constructor.invoke(
+        #     {"query": query}, config={"callbacks": run_manager.get_child()}
+        # )
+        try:
+            structured_query = self.query_constructor.invoke(
+                {"query": query}, config={"callbacks": run_manager.get_child()}
+            )
+        except OutputParserException as e:
+            logger.error(e)
+            return []
         if self.verbose:
             logger.info(f"Generated Query: {structured_query}")
         new_query, search_kwargs = self._prepare_query(query, structured_query)
@@ -179,9 +187,16 @@ class SelfQueryRetriever(BaseRetriever, BaseModel):
         Returns:
             List of relevant documents
         """
-        structured_query = await self.query_constructor.ainvoke(
-            {"query": query}, config={"callbacks": run_manager.get_child()}
-        )
+        # structured_query = await self.query_constructor.ainvoke(
+        #     {"query": query}, config={"callbacks": run_manager.get_child()}
+        # )
+        try:
+            structured_query = await self.query_constructor.ainvoke(
+                {"query": query}, config={"callbacks": run_manager.get_child()}
+            )
+        except OutputParserException as e:
+            logger.error(e)
+            return []
         if self.verbose:
             logger.info(f"Generated Query: {structured_query}")
         new_query, search_kwargs = self._prepare_query(query, structured_query)
