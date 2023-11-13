@@ -24,7 +24,7 @@ from langchain.retrievers.self_query.supabase import SupabaseVectorTranslator
 from langchain.retrievers.self_query.timescalevector import TimescaleVectorTranslator
 from langchain.retrievers.self_query.vectara import VectaraTranslator
 from langchain.retrievers.self_query.weaviate import WeaviateTranslator
-from langchain.schema import BaseRetriever, Document
+from langchain.schema import BaseRetriever, Document, OutputParserException
 from langchain.schema.language_model import BaseLanguageModel
 from langchain.schema.runnable import Runnable
 from langchain.schema.vectorstore import VectorStore
@@ -157,9 +157,16 @@ class SelfQueryRetriever(BaseRetriever, BaseModel):
         Returns:
             List of relevant documents
         """
-        structured_query = self.query_constructor.invoke(
-            {"query": query}, config={"callbacks": run_manager.get_child()}
-        )
+        # structured_query = self.query_constructor.invoke(
+        #     {"query": query}, config={"callbacks": run_manager.get_child()}
+        # )
+        try:
+            structured_query = self.query_constructor.invoke(
+                {"query": query}, config={"callbacks": run_manager.get_child()}
+            )
+        except OutputParserException as e:
+            logger.error(e)
+            return []
         if self.verbose:
             logger.info(f"Generated Query: {structured_query}")
         new_query, search_kwargs = self._prepare_query(query, structured_query)
@@ -177,9 +184,16 @@ class SelfQueryRetriever(BaseRetriever, BaseModel):
         Returns:
             List of relevant documents
         """
-        structured_query = await self.query_constructor.ainvoke(
-            {"query": query}, config={"callbacks": run_manager.get_child()}
-        )
+        # structured_query = await self.query_constructor.ainvoke(
+        #     {"query": query}, config={"callbacks": run_manager.get_child()}
+        # )
+        try:
+            structured_query = await self.query_constructor.ainvoke(
+                {"query": query}, config={"callbacks": run_manager.get_child()}
+            )
+        except OutputParserException as e:
+            logger.error(e)
+            return []
         if self.verbose:
             logger.info(f"Generated Query: {structured_query}")
         new_query, search_kwargs = self._prepare_query(query, structured_query)
