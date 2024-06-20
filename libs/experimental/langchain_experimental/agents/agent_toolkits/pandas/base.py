@@ -65,10 +65,12 @@ def _get_multi_prompt(
     prompt = PromptTemplate.from_template(template)
     partial_prompt = prompt.partial()
     if "dfs_head" in partial_prompt.input_variables:
-        dfs_head = "\n\n".join([d.head(number_of_head_rows).to_markdown() for d in dfs])
+        dfs_head = "\n\n".join([f"df{i}.head()\n" + d.head(number_of_head_rows).to_markdown() for i, d in enumerate(dfs)])
         partial_prompt = partial_prompt.partial(dfs_head=dfs_head)
     if "num_dfs" in partial_prompt.input_variables:
         partial_prompt = partial_prompt.partial(num_dfs=str(len(dfs)))
+    if "dfs_name" in partial_prompt.input_variables:
+        partial_prompt = partial_prompt.partial(dfs_name=",".join([f'df{inx + 1}' for indx in range(len(dfs))]))
     return partial_prompt
 
 
@@ -134,7 +136,8 @@ def _get_functions_multi_prompt(
     if include_df_in_prompt:
         dfs_head = "\n\n".join([d.head(number_of_head_rows).to_markdown() for d in dfs])
         suffix = (suffix or FUNCTIONS_WITH_MULTI_DF).format(dfs_head=dfs_head)
-    prefix = (prefix or MULTI_DF_PREFIX_FUNCTIONS).format(num_dfs=str(len(dfs)))
+    dfs_name=",".join([f'df{indx + 1}' for indx in range(len(dfs))])
+    prefix = (prefix or MULTI_DF_PREFIX_FUNCTIONS).format(num_dfs=str(len(dfs)), dfs_name=dfs_name)
     system_message = SystemMessage(content=prefix + suffix)
     prompt = OpenAIFunctionsAgent.create_prompt(system_message=system_message)
     return prompt
@@ -316,6 +319,7 @@ def create_pandas_dataframe_agent(
             include_df_in_prompt=include_df_in_prompt,
             number_of_head_rows=number_of_head_rows,
         )
+        breakpoint()
         if agent_type == AgentType.OPENAI_FUNCTIONS:
             runnable = create_openai_functions_agent(
                 cast(BaseLanguageModel, llm), tools, prompt

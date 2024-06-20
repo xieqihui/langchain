@@ -5,8 +5,10 @@ You are working with a pandas dataframe in Python. The name of the dataframe is 
 You should use the tools below to answer the question posed of you:"""
 
 MULTI_DF_PREFIX = """
-You are working with {num_dfs} pandas dataframes in Python named df1, df2, etc. You 
-should use the tools below to answer the question posed of you:"""
+You are working with {num_dfs} pandas dataframes in Python named {dfs_name}. 
+Remember that when you use python_repl_ast tool, all the dataframes are already available in locals, 
+you only need to output code to work with them. Don't constuct new dataframes. 
+You should use the tools below to answer the question posed of you:"""
 
 SUFFIX_NO_DF = """
 Begin!
@@ -33,7 +35,11 @@ PREFIX_FUNCTIONS = """
 You are working with a pandas dataframe in Python. The name of the dataframe is `df`."""
 
 MULTI_DF_PREFIX_FUNCTIONS = """
-You are working with {num_dfs} pandas dataframes in Python named df1, df2, etc."""
+You are working with {num_dfs} pandas dataframes in Python named {dfs_name}.
+
+Remember that when you use python_repl_ast tool, all the dataframes are already available in locals, 
+you only need to output code to work with them. Don't constuct new dataframes. 
+"""
 
 FUNCTIONS_WITH_DF = """
 This is the result of `print(df.head())`:
