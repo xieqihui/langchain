@@ -134,9 +134,15 @@ def _get_functions_multi_prompt(
     number_of_head_rows: int = 5,
 ) -> ChatPromptTemplate:
     if include_df_in_prompt:
-        dfs_head = "\n\n".join([d.head(number_of_head_rows).to_markdown() for d in dfs])
+        if isinstance(dfs, list):
+            dfs_head = "\n\n".join([d.head(number_of_head_rows).to_markdown() for d in dfs])
+        else:
+            dfs_head = "\n\n".join([d.head(number_of_head_rows).to_markdown() for _, d in dfs.items()])
         suffix = (suffix or FUNCTIONS_WITH_MULTI_DF).format(dfs_head=dfs_head)
-    dfs_name=",".join([f'df{indx + 1}' for indx in range(len(dfs))])
+    if isinstance(dfs, list):
+        dfs_name=",".join([f'df{indx + 1}' for indx in range(len(dfs))])
+    else:
+        dfs_name=",".join([f"df_{name}" for name, d in dfs.items()])
     prefix = (prefix or MULTI_DF_PREFIX_FUNCTIONS).format(num_dfs=str(len(dfs)), dfs_name=dfs_name)
     system_message = SystemMessage(content=prefix + suffix)
     prompt = OpenAIFunctionsAgent.create_prompt(system_message=system_message)
@@ -146,7 +152,7 @@ def _get_functions_multi_prompt(
 def _get_functions_prompt(df: Any, **kwargs: Any) -> ChatPromptTemplate:
     return (
         _get_functions_multi_prompt(df, **kwargs)
-        if isinstance(df, list)
+        if isinstance(df, list) or isinstance(df, dict)
         else _get_functions_single_prompt(df, **kwargs)
     )
 
@@ -274,7 +280,19 @@ def create_pandas_dataframe_agent(
     if is_interactive_env():
         pd.set_option("display.max_columns", None)
 
-    for _df in df if isinstance(df, list) else [df]:
+    # for _df in df if isinstance(df, list) elif isinstance(df, dict) else [df]:
+    #     if not isinstance(_df, pd.DataFrame):
+    #         raise ValueError(f"Expected pandas DataFrame, got {type(_df)}")
+
+    def iterable_df(df):
+        if isinstance(df, list):
+            return df
+        elif isinstance(df, dict):
+            return [_df for n, _df in df.items()]
+        else:
+            return [df]
+
+    for _df in iterable_df(df):
         if not isinstance(_df, pd.DataFrame):
             raise ValueError(f"Expected pandas DataFrame, got {type(_df)}")
 
@@ -290,6 +308,9 @@ def create_pandas_dataframe_agent(
     if isinstance(df, list):
         for i, dataframe in enumerate(df):
             df_locals[f"df{i + 1}"] = dataframe
+    elif isinstance(df, dict):
+        for name, dataframe in df.items():
+            df_locals[f"df_{name}"] = dataframe
     else:
         df_locals["df"] = df
     tools = [PythonAstREPLTool(locals=df_locals)] + list(extra_tools)
@@ -319,7 +340,7 @@ def create_pandas_dataframe_agent(
             include_df_in_prompt=include_df_in_prompt,
             number_of_head_rows=number_of_head_rows,
         )
-        breakpoint()
+        #breakpoint()
         if agent_type == AgentType.OPENAI_FUNCTIONS:
             runnable = create_openai_functions_agent(
                 cast(BaseLanguageModel, llm), tools, prompt
